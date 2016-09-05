@@ -61,6 +61,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Math.pow;
 
@@ -89,7 +92,8 @@ import static java.lang.Math.pow;
         programGroup = Metrics.class
 )
 public class EstimateLibraryComplexity extends AbstractOpticalDuplicateFinderCommandLineProgram {
-    static final String USAGE_SUMMARY = "Estimates the numbers of unique molecules in a sequencing library.  ";
+    static
+    final String USAGE_SUMMARY = "Estimates the numbers of unique molecules in a sequencing library.  ";
     static final String USAGE_DETAILS = "<p>This tool outputs quality metrics for a sequencing library preparation." +
             "Library complexity refers to the number of unique DNA fragments present in a given library.  Reductions in complexity " +
             "resulting from PCR amplification during library preparation will ultimately compromise downstream analyses " +
@@ -428,6 +432,9 @@ public class EstimateLibraryComplexity extends AbstractOpticalDuplicateFinderCom
 
         // Loop through the input files and pick out the read sequences etc.
         final ProgressLogger progress = new ProgressLogger(log, (int) 1e6, "Read");
+
+        //ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()/2);
+
         for (final File f : INPUT) {
             final Map<String, PairedReadSequence> pendingByName = new HashMap<String, PairedReadSequence>();
             final SamReader in = SamReaderFactory.makeDefault().referenceSequence(REFERENCE_SEQUENCE).open(f);
@@ -478,12 +485,31 @@ public class EstimateLibraryComplexity extends AbstractOpticalDuplicateFinderCom
                     }
                 }
 
+                /*final PairedReadSequence prs_1 = prs;
+                service.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (prs_1.read1 != null && prs_1.read2 != null && prs_1.qualityOk) {
+                            sorter.add(prs_1);
+                        }
+                    }
+                });*/
+
                 if (prs.read1 != null && prs.read2 != null && prs.qualityOk) {
                     sorter.add(prs);
                 }
 
                 progress.record(rec);
             }
+
+            /*service.shutdown();
+
+            try{
+                service.awaitTermination(1, TimeUnit.DAYS);
+            } catch(InterruptedException e){
+                e.printStackTrace();
+            }*/
+
             CloserUtil.close(in);
         }
 
